@@ -342,13 +342,13 @@ document.addEventListener('click', function(e){
       </div>
       <div class="filter-bar" style="margin-top:8px;">
         <label style="display:flex;align-items:center;gap:5px;font-size:12.5px;cursor:pointer;">
-          <input type="checkbox" id="fil-fact-pendiente" onchange="renderHistorial()" style="width:14px;height:14px;margin:0;"> 🧾 Pendiente
+          <input type="checkbox" id="fil-fact-pendiente" onchange="toggleFiltroFactura('fil-fact-pendiente')" style="width:14px;height:14px;margin:0;"> 🧾 Pendiente
         </label>
         <label style="display:flex;align-items:center;gap:5px;font-size:12.5px;cursor:pointer;">
-          <input type="checkbox" id="fil-fact-facturado" onchange="renderHistorial()" style="width:14px;height:14px;margin:0;"> ✅ Facturado
+          <input type="checkbox" id="fil-fact-facturado" onchange="toggleFiltroFactura('fil-fact-facturado')" style="width:14px;height:14px;margin:0;"> ✅ Facturado
         </label>
         <label style="display:flex;align-items:center;gap:5px;font-size:12.5px;cursor:pointer;">
-          <input type="checkbox" id="fil-fact-sin" onchange="renderHistorial()" style="width:14px;height:14px;margin:0;"> 🚫 Sin factura
+          <input type="checkbox" id="fil-fact-sin" onchange="toggleFiltroFactura('fil-fact-sin')" style="width:14px;height:14px;margin:0;"> 🚫 Sin factura
         </label>
       </div>
       <div id="historial-content"></div>
@@ -533,11 +533,11 @@ document.addEventListener('click', function(e){
       </div>
     </div>
     <div class="form-group" style="margin-bottom:12px;">
-      <label>Base a exportar <span style="color:var(--gray-400);font-size:10px;font-weight:400;text-transform:lowercase">(marca una o varias — si no marcas ninguna, exporta todo)</span></label>
+      <label>Base a exportar <span style="color:var(--gray-400);font-size:10px;font-weight:400;text-transform:lowercase">(marca una — si no marcas ninguna, exporta todo)</span></label>
       <div style="display:flex;gap:14px;margin-top:4px;flex-wrap:wrap;">
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="checkbox" id="export-fact-pendiente" style="margin:0;"> 🧾 Pendiente</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="checkbox" id="export-fact-facturado" style="margin:0;"> ✅ Facturado</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="checkbox" id="export-fact-sin" style="margin:0;"> 🚫 Sin factura</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="checkbox" id="export-fact-pendiente" onchange="toggleFiltroFactura('export-fact-pendiente')" style="margin:0;"> 🧾 Pendiente</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="checkbox" id="export-fact-facturado" onchange="toggleFiltroFactura('export-fact-facturado')" style="margin:0;"> ✅ Facturado</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="checkbox" id="export-fact-sin" onchange="toggleFiltroFactura('export-fact-sin')" style="margin:0;"> 🚫 Sin factura</label>
       </div>
     </div>
     <div class="form-grid">
@@ -688,6 +688,18 @@ function esc(s){
 }
 // Transacciones activas (excluye las que están en Papelera)
 function activeTx(){return transactions.filter(t=>!t.deleted);}
+// Los 3 checkboxes de estado de factura (Pendiente/Facturado/Sin factura) son mutuamente
+// excluyentes entre sí — al marcar uno se desmarcan los otros dos del mismo grupo.
+// Sirve tanto para el filtro de Historial (ids fil-fact-*) como para el menú de
+// exportación (ids export-fact-*); cada grupo se filtra por su propio prefijo.
+function toggleFiltroFactura(idActivado){
+  const prefijo=idActivado.startsWith('fil-')?'fil-fact-':'export-fact-';
+  const ids=[prefijo+'pendiente',prefijo+'facturado',prefijo+'sin'];
+  ids.forEach(id=>{
+    if(id!==idActivado)document.getElementById(id).checked=false;
+  });
+  if(prefijo==='fil-fact-')renderHistorial();
+}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function fmt(n){return'$'+Number(n).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});}
 
