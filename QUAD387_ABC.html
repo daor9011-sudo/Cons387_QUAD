@@ -317,7 +317,7 @@ document.addEventListener('click', function(e){
         <button id="btn-vista-tx" class="btn btn-gold" onclick="setVista('tx')" style="border-radius:6px 0 0 6px;">≡ Transacciones</button>
         <button id="btn-vista-pac" class="btn btn-outline" onclick="setVista('pac')" style="border-radius:0 6px 6px 0;">👤 Pacientes</button>
       </div>
-      <button class="btn btn-outline" onclick="exportarExcel()">↓ Exportar Excel</button>
+      <button class="btn btn-outline" onclick="abrirExportModal()">↓ Descargar</button>
       <button class="btn btn-outline" onclick="togglePapelera()">🗑 Papelera</button>
     </div>
 
@@ -339,6 +339,17 @@ document.addEventListener('click', function(e){
         </select>
         <input type="text" id="fil-buscar" placeholder="Buscar paciente o servicio..." style="flex:2;min-width:160px;">
         <button class="btn btn-outline" onclick="renderHistorial()">Buscar</button>
+      </div>
+      <div class="filter-bar" style="margin-top:8px;">
+        <label style="display:flex;align-items:center;gap:5px;font-size:12.5px;cursor:pointer;">
+          <input type="checkbox" id="fil-fact-pendiente" onchange="renderHistorial()" style="width:14px;height:14px;margin:0;"> 🧾 Pendiente
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:12.5px;cursor:pointer;">
+          <input type="checkbox" id="fil-fact-facturado" onchange="renderHistorial()" style="width:14px;height:14px;margin:0;"> ✅ Facturado
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:12.5px;cursor:pointer;">
+          <input type="checkbox" id="fil-fact-sin" onchange="renderHistorial()" style="width:14px;height:14px;margin:0;"> 🚫 Sin factura
+        </label>
       </div>
       <div id="historial-content"></div>
     </div>
@@ -507,6 +518,52 @@ document.addEventListener('click', function(e){
   </div>
 </div>
 
+<!-- MODAL EXPORTAR -->
+<div class="modal-overlay" id="export-modal-overlay" onclick="if(event.target===this)cerrarExportModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">↓ Descargar histórico</span>
+      <button class="modal-close" onclick="cerrarExportModal()">×</button>
+    </div>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Formato</label>
+      <div style="display:flex;gap:14px;margin-top:4px;">
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="radio" name="export-formato" id="export-formato-excel" value="excel" checked style="margin:0;"> Excel</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="radio" name="export-formato" id="export-formato-pdf" value="pdf" style="margin:0;"> PDF</label>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Base a exportar <span style="color:var(--gray-400);font-size:10px;font-weight:400;text-transform:lowercase">(marca una o varias — si no marcas ninguna, exporta todo)</span></label>
+      <div style="display:flex;gap:14px;margin-top:4px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="checkbox" id="export-fact-pendiente" style="margin:0;"> 🧾 Pendiente</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="checkbox" id="export-fact-facturado" style="margin:0;"> ✅ Facturado</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="checkbox" id="export-fact-sin" style="margin:0;"> 🚫 Sin factura</label>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Personal</label>
+        <select id="export-doctor">
+          <option value="">Todo el personal</option>
+          <option>Dr. Carlos Yañez</option>
+          <option>Dra. Paulina Garfias Alemán</option>
+          <option>Dr. Javier García Guerrero</option>
+          <option>Dra. Ana Lilia Rendón Castillo</option>
+          <option>Dr. Mario Alberto Quintero García</option>
+          <option>Dra. Brenda Gómez Gómez</option>
+          <option>Dr. Marco Sanchez Breton</option>
+        </select>
+      </div>
+      <div></div>
+      <div class="form-group"><label>Desde <span style="color:var(--gray-400);font-size:10px;font-weight:400;text-transform:lowercase">(opcional)</span></label><input type="date" id="export-desde"></div>
+      <div class="form-group"><label>Hasta <span style="color:var(--gray-400);font-size:10px;font-weight:400;text-transform:lowercase">(opcional)</span></label><input type="date" id="export-hasta"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gold" onclick="generarExport()">✓ Generar</button>
+      <button class="btn btn-outline" onclick="cerrarExportModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- BLOQUEO POR INACTIVIDAD -->
@@ -518,6 +575,8 @@ document.addEventListener('click', function(e){
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.11.1/lib/msal-browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
@@ -946,10 +1005,20 @@ function renderHistorial(){
   const fecha=document.getElementById('fil-fecha').value;
   const pers=document.getElementById('fil-personal').value;
   const buscar=document.getElementById('fil-buscar').value.toLowerCase();
+  const fPend=document.getElementById('fil-fact-pendiente').checked;
+  const fFact=document.getElementById('fil-fact-facturado').checked;
+  const fSin=document.getElementById('fil-fact-sin').checked;
+  const anyFactFiltro=fPend||fFact||fSin;
   let filtered=activeTx().filter(t=>{
     if(fecha&&t.fecha!==fecha)return false;
     if(pers&&t.doctor!==pers)return false;
     if(buscar&&!t.paciente.toLowerCase().includes(buscar)&&!t.servicio.toLowerCase().includes(buscar))return false;
+    if(anyFactFiltro){
+      const esPendiente=!!t.factura&&!t.facturaFolio;
+      const esFacturado=!!t.factura&&!!t.facturaFolio;
+      const esSin=!t.factura;
+      if(!((fPend&&esPendiente)||(fFact&&esFacturado)||(fSin&&esSin)))return false;
+    }
     return true;
   }).sort((a,b)=>b.id-a.id);
   const total=filtered.reduce((s,t)=>s+t.monto,0);
@@ -1319,9 +1388,11 @@ function verTxPaciente(idx){
 }
 
 // ── EXCEL HISTÓRICO ──
-function exportarExcel(){
-  if(!activeTx().length){toast('No hay transacciones para exportar');return;}
-  const transactions=activeTx(); // snapshot local sin eliminados, para no afectar el arreglo global
+function exportarExcel(dataset,etiqueta){
+  dataset=dataset||activeTx();
+  etiqueta=etiqueta||'Historico';
+  if(!dataset.length){toast('No hay transacciones para exportar con ese filtro');return;}
+  const transactions=dataset; // snapshot ya filtrado, para no afectar el arreglo global
   const wb=XLSX.utils.book_new();
 
   // ── Estilos ──
@@ -1449,8 +1520,149 @@ function exportarExcel(){
 
   const desde=transactions.map(t=>t.fecha).sort()[0];
   const hasta=transactions.map(t=>t.fecha).sort().reverse()[0];
-  XLSX.writeFile(wb,`QUAD387_Historico_${fromISO(desde).replace(/\//g,'-')}_${fromISO(hasta).replace(/\//g,'-')}.xlsx`,{bookSST:false,cellStyles:true});
+  XLSX.writeFile(wb,`QUAD387_${etiqueta}_${fromISO(desde).replace(/\//g,'-')}_${fromISO(hasta).replace(/\//g,'-')}.xlsx`,{bookSST:false,cellStyles:true});
   toast('✓ Excel exportado');
+}
+
+// ── MENÚ DE DESCARGA (Excel / PDF, base configurable) ──
+function abrirExportModal(){
+  document.getElementById('export-modal-overlay').classList.add('open');
+}
+function cerrarExportModal(){
+  document.getElementById('export-modal-overlay').classList.remove('open');
+}
+function calcularDatasetExport(){
+  const fPend=document.getElementById('export-fact-pendiente').checked;
+  const fFact=document.getElementById('export-fact-facturado').checked;
+  const fSin=document.getElementById('export-fact-sin').checked;
+  const anyFactFiltro=fPend||fFact||fSin;
+  const doctor=document.getElementById('export-doctor').value;
+  const desde=document.getElementById('export-desde').value;
+  const hasta=document.getElementById('export-hasta').value;
+  const dataset=activeTx().filter(t=>{
+    if(doctor&&t.doctor!==doctor)return false;
+    if(desde&&t.fecha<desde)return false;
+    if(hasta&&t.fecha>hasta)return false;
+    if(anyFactFiltro){
+      const esPendiente=!!t.factura&&!t.facturaFolio;
+      const esFacturado=!!t.factura&&!!t.facturaFolio;
+      const esSin=!t.factura;
+      if(!((fPend&&esPendiente)||(fFact&&esFacturado)||(fSin&&esSin)))return false;
+    }
+    return true;
+  });
+  // Etiqueta descriptiva para el nombre del archivo
+  const partes=[];
+  if(fPend)partes.push('Pendiente');
+  if(fFact)partes.push('Facturado');
+  if(fSin)partes.push('SinFactura');
+  if(doctor)partes.push(doctor.split(' ').slice(-1)[0]);
+  const etiqueta=partes.length?partes.join('_'):'Historico';
+  return {dataset,etiqueta,filtros:{fPend,fFact,fSin,doctor,desde,hasta}};
+}
+function generarExport(){
+  const {dataset,etiqueta,filtros}=calcularDatasetExport();
+  if(!dataset.length){toast('No hay transacciones para exportar con ese filtro');return;}
+  const formato=document.getElementById('export-formato-pdf').checked?'pdf':'excel';
+  if(formato==='excel'){
+    exportarExcel(dataset,etiqueta);
+  }else{
+    exportarPDF(dataset,etiqueta,filtros);
+  }
+  cerrarExportModal();
+}
+
+// ── PDF — reporte con encabezado, KPIs y semaforización de factura ──
+function exportarPDF(dataset,etiqueta,filtros){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'pt',format:'letter'});
+  const pageW=doc.internal.pageSize.getWidth();
+  const NAVY=[11,22,40], TEAL=[42,191,191], WHITE=[255,255,255], GRAY=[143,168,190];
+  const RED=[192,57,43], GREEN=[46,125,79], GRAYBADGE=[110,120,130];
+
+  // ── Encabezado navy ──
+  doc.setFillColor(...NAVY);
+  doc.rect(0,0,pageW,64,'F');
+  try{
+    const logoImg=document.querySelector('.header-logos img');
+    if(logoImg&&logoImg.src)doc.addImage(logoImg.src,'PNG',28,12,110,40);
+  }catch(e){console.warn('Logo PDF:',e);}
+  doc.setTextColor(...WHITE);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(15);
+  doc.text('Consultorio 387 QUAD — Reporte de Historial',pageW-28,28,{align:'right'});
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(9);
+  const partesFiltro=[];
+  if(filtros.doctor)partesFiltro.push(filtros.doctor);
+  if(filtros.desde||filtros.hasta)partesFiltro.push(`${filtros.desde?fromISO(filtros.desde):'inicio'} a ${filtros.hasta?fromISO(filtros.hasta):'hoy'}`);
+  if(filtros.fPend)partesFiltro.push('Factura pendiente');
+  if(filtros.fFact)partesFiltro.push('Facturado');
+  if(filtros.fSin)partesFiltro.push('Sin factura');
+  doc.text(partesFiltro.length?partesFiltro.join(' · '):'Histórico completo',pageW-28,44,{align:'right'});
+  doc.text('Generado el '+new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'}),pageW-28,58,{align:'right'});
+
+  // ── KPIs ──
+  const total=dataset.reduce((s,t)=>s+t.monto,0);
+  const nPend=dataset.filter(t=>t.factura&&!t.facturaFolio).length;
+  const nFact=dataset.filter(t=>t.factura&&t.facturaFolio).length;
+  const nSin=dataset.filter(t=>!t.factura).length;
+  const kpis=[
+    ['Transacciones',String(dataset.length)],
+    ['Total',fmt(total)],
+    ['🧾 Pendientes',String(nPend)],
+    ['✅ Facturados',String(nFact)],
+    ['🚫 Sin factura',String(nSin)]
+  ];
+  const kpiY=84, kpiW=(pageW-56)/kpis.length;
+  kpis.forEach((k,i)=>{
+    const x=28+i*kpiW;
+    doc.setFillColor(245,248,251);
+    doc.setDrawColor(208,220,234);
+    doc.roundedRect(x,kpiY,kpiW-8,44,4,4,'FD');
+    doc.setTextColor(...GRAY);
+    doc.setFontSize(8);
+    doc.text(k[0],x+10,kpiY+16);
+    doc.setTextColor(...NAVY);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(13);
+    doc.text(k[1],x+10,kpiY+34);
+    doc.setFont('helvetica','normal');
+  });
+
+  // ── Tabla semaforizada ──
+  const rows=[...dataset].sort((a,b)=>b.id-a.id).map(t=>{
+    let factTxt='—', factColor=GRAYBADGE;
+    if(t.factura&&t.facturaFolio){factTxt='✓ '+t.facturaFolio;factColor=GREEN;}
+    else if(t.factura){factTxt='Pendiente';factColor=RED;}
+    return [fromISO(t.fecha),t.doctor,t.paciente,t.servicio,t.pago,fmt(t.monto),factTxt,factColor];
+  });
+  doc.autoTable({
+    startY:kpiY+58,
+    head:[['Fecha','Atendido por','Paciente','Servicio','Pago','Monto','Factura']],
+    body:rows.map(r=>r.slice(0,7)),
+    styles:{fontSize:8,cellPadding:5,font:'helvetica'},
+    headStyles:{fillColor:NAVY,textColor:WHITE,fontStyle:'bold'},
+    alternateRowStyles:{fillColor:[245,248,251]},
+    columnStyles:{5:{halign:'right'},6:{fontStyle:'bold'}},
+    didParseCell:(data)=>{
+      if(data.section==='body'&&data.column.index===6){
+        const color=rows[data.row.index][7];
+        data.cell.styles.textColor=color;
+      }
+    },
+    margin:{left:28,right:28},
+    didDrawPage:()=>{
+      const pc=doc.internal.getNumberOfPages();
+      doc.setFontSize(8);
+      doc.setTextColor(...GRAY);
+      doc.text(`Página ${doc.internal.getCurrentPageInfo().pageNumber} de ${pc}`,pageW-28,doc.internal.pageSize.getHeight()-16,{align:'right'});
+      doc.text('Mediconsulting — Consultorio 387 QUAD',28,doc.internal.pageSize.getHeight()-16);
+    }
+  });
+
+  doc.save(`QUAD387_${etiqueta}_${today()}.pdf`);
+  toast('✓ PDF generado');
 }
 
 renderHistorial();
